@@ -41,6 +41,8 @@ body {
 .board .cell-active {
   background: rgb(214, 214, 214);
   border: 1px solid rgb(139, 139, 139);
+  font-size: 24px;
+  font-weight: 700;
 }
 
 .boom {
