@@ -4,8 +4,10 @@ class Sapper {
   constructor() {
     this.element = null
     this.board = []
-    this.cellsBombs = null
+    this.cellsBombs = []
+    this.numbers = []
     this.screen = null
+    this.gameOver = false
     this.sizeBoard = {
       maxY: 16,
       maxX: 24,
@@ -20,7 +22,7 @@ class Sapper {
     this.element.addEventListener(
       'click',
       (e) => {
-        this.switchCell(e.target.id)
+        this.clickCell(e.target)
       },
       false
     )
@@ -33,79 +35,98 @@ class Sapper {
   addCells() {
     const fragment = document.createDocumentFragment()
 
-    this.addBombs()
-    let id = 0
     for (let y = 0; y < this.sizeBoard.maxY; y++) {
       //const data = []
       for (let x = 0; x < this.sizeBoard.maxX; x++) {
         const el = document.createElement('div')
         el.classList.add('cell')
         el.classList.add('cell-disable')
-        el.setAttribute('x', x)
-        el.setAttribute('y', y)
-        el.setAttribute('id', id)
-        id++
+        el.setAttribute('coord', `${x},${y}`)
+        //el.textContent = `${x},${y}`
 
-        //data[x] = this.cellsBombs.indexOf(+x) !== -1 ? true : false
-        // data[x] = this.cellsBombs.forEach((item) => {
-        //   if (+item.x === +x) {
-        //     return true
-        //   }
-        //   return false
-        // })
-
+        this.addBombs(x, y)
         fragment.appendChild(el)
       }
       //this.board.push(data)
       //console.log(this.board)
     }
+    this.numbersHandler()
     return fragment
   }
 
-  addBombs() {
-    this.cellsBombs = []
-    let min = 0
-    let max = this.sizeBoard.maxY * this.sizeBoard.maxX
-    for (let i = 0; i <= 50; i++) {
-      //let y = Math.floor(Math.random() * 15)
-      //let x = Math.floor(Math.random() * 23)
+  addBombs(x, y) {
+    const bombValue = 0.2
 
-      let id = Math.floor(Math.random() * (max - min) + min)
+    let rand = Math.random() < bombValue
 
-      this.cellsBombs.push(id)
+    if (rand) {
+      this.cellsBombs.push(`${x},${y}`)
+      if (x > 0) this.numbers.push(`${x - 1},${y}`)
+      if (x < this.sizeBoard.maxX - 1) this.numbers.push(`${x + 1},${y}`)
+      if (y > 0) this.numbers.push(`${x},${y - 1}`)
+      if (y < this.sizeBoard.maxY - 1) this.numbers.push(`${x},${y + 1}`)
+      if (x > 0 && y > 0) this.numbers.push(`${x - 1},${y - 1}`)
+      if (x < this.sizeBoard.maxX - 1 && y < this.sizeBoard.maxY - 1)
+        this.numbers.push(`${x + 1},${y + 1}`)
+      if (y > 0 && x < this.sizeBoard.maxX - 1)
+        this.numbers.push(`${x + 1},${y - 1}`)
+      if (x > 0 && y < this.sizeBoard.maxY - 1)
+        this.numbers.push(`${x - 1},${y + 1}`)
     }
-
-    console.log(this.cellsBombs)
   }
 
-  switchCell(id) {
-    const $el = document.getElementById(id)
-    if (id) {
-      if (!$el.classList.contains('cell-active')) {
-        $el.classList.remove('cell-disable')
+  numbersHandler() {
+    setTimeout(() => {
+      this.numbers.forEach((n) => {
+        let coord = n.split(',')
+        //console.log(coord)
+        let cell = document.querySelector(
+          `div[coord="${+coord[0]},${+coord[1]}"]`
+        )
 
-        this.cellsBombs.forEach((item) => {
-          // if (+item.x === +x && +item.y === +y) {
-          //   console.log('BOOM!')
-          //   this.activeBombs()
-          // }
-          if (+item === +id) {
-            console.log('BOOM!')
-            this.activeBombs()
+        //console.log(cell)
+
+        let num = +cell.getAttribute('num')
+        if (!num) num = 0
+        cell.setAttribute('num', +num + 1)
+      })
+    }, 10)
+  }
+
+  clickCell(elem) {
+    console.log(elem)
+    if (this.gameOver) return
+
+    if (elem.hasAttribute('coord')) {
+      const coord = elem.getAttribute('coord')
+      if (!elem.classList.contains('cell-active')) {
+        elem.classList.remove('cell-disable')
+
+        if (this.cellsBombs.includes(coord)) {
+          console.log('BOOM!')
+          this.gameOver = true
+          this.activeBombs()
+        } else {
+          const num = elem.getAttribute('num')
+          if (num != null) {
+            elem.classList.add('cell-active')
+            elem.textContent = num
+            return
           }
-        })
+        }
 
-        this.numberCell(id)
-        this.numberCell2(id)
-        $el.classList.add('cell-active')
+        this.checkCell(elem, coord)
+        elem.classList.add('cell-active')
       }
     }
   }
 
   activeBombs() {
     this.cellsBombs.forEach((item) => {
-      document.getElementById(item).classList.remove('cell-disable')
-      document.getElementById(item).classList.add('boom')
+      document
+        .querySelector(`div[coord="${item}"]`)
+        .classList.remove('cell-disable')
+      document.querySelector(`div[coord="${item}"]`).classList.add('boom')
     })
     this.screen = document.createElement('span')
     this.screen.classList.add('span-block')
@@ -114,88 +135,94 @@ class Sapper {
     return
   }
 
-  numberCell(id) {
-    const $el = document.getElementById(id)
-    const x = $el.getAttribute('x')
-    const y = $el.getAttribute('y')
+  checkCell(elem, coord) {
+    let coords = coord.split(',')
+    const x = +coords[0]
+    const y = +coords[1]
 
-    let c1
-    let c2
-    let c3
-    let c4
-    let c6
-    let c7
-    let c8
-    let c9
+    //console.log(coords)
 
-    const line1 = document.querySelectorAll(`div[y="${+y - 1}"]`)
-    const line2 = document.querySelectorAll(`div[y="${y}"]`)
-    const line3 = document.querySelectorAll(`div[y="${+y + 1}"]`)
+    setTimeout(() => {
+      if (x > 0) {
+        let cellWest = document.querySelector(`div[coord="${x - 1},${y}"]`)
+        this.clickCell(cellWest, `${x - 1},${y}`)
+      }
+      if (x < this.sizeBoard.maxX - 1) {
+        let cellEast = document.querySelector(`div[coord="${x + 1},${y}"]`)
+        this.clickCell(cellEast, `${x + 1},${y}`)
+      }
+      if (y > 0) {
+        let cellNorth = document.querySelector(`div[coord="${x},${y - 1}"]`)
+        this.clickCell(cellNorth, `${x},${y - 1}`)
+      }
+      if (y < this.sizeBoard.maxY - 1) {
+        let cellSouth = document.querySelector(`div[coord="${x},${y + 1}"]`)
+        this.clickCell(cellSouth, `${x},${y + 1}`)
+      }
+      if (x > 0 && y > 0) {
+        let cellNorthWest = document.querySelector(
+          `div[coord="${x - 1},${y - 1}"]`
+        )
+        this.clickCell(cellNorthWest, `${x - 1},${y - 1}`)
+      }
+      if (x < this.sizeBoard.maxX - 1 && y < this.sizeBoard.maxY - 1) {
+        let cellSouthEast = document.querySelector(
+          `div[coord="${x + 1},${y + 1}"]`
+        )
+        this.clickCell(cellSouthEast, `${x + 1},${y + 1}`)
+      }
+      if (y > 0 && x < this.sizeBoard.maxX - 1) {
+        let cellNorthEast = document.querySelector(
+          `div[coord="${x + 1},${y - 1}"]`
+        )
+        this.clickCell(cellNorthEast, `${x + 1},${y - 1}`)
+      }
+      if (x > 0 && y < this.sizeBoard.maxY - 1) {
+        let cellSouthWest = document.querySelector(
+          `div[coord="${x - 1},${y + 1}"]`
+        )
+        this.clickCell(cellSouthWest, `${x - 1},${y + 1}`)
+      }
+    }, 10)
 
-    //console.log(line1)
-    //console.log(line2)
-    //console.log(line3)
-    // if (this.board[+id] === false) {
-    //   const brd = this.board
-    //   let prev = brd[+id - 1]
-    //   let next = brd[+id + 1]
-    //   console.log(this.cellsBombs)
-    //   console.log(prev, next)
-    //   if (prev && next) {
-    //     document.getElementById(id).textContent = '2'
-    //   }
-    //   if (prev || next) {
-    //     document.getElementById(id).textContent = '1'
-    //     console.log('Set 1')
-    //   }
-    // }
-  }
+    // const $1 = x > 0 ? this.checkCellBomb(+id - this.sizeBoard.maxX - 1) : 0
+    // const $2 = y > 0 ? this.checkCellBomb(+id - this.sizeBoard.maxX) : 0
+    // const $3 =
+    //   x < this.sizeBoard.maxX - 1
+    //     ? this.checkCellBomb(+id - this.sizeBoard.maxX + 1)
+    //     : 0
+    // const $4 = x > 0 ? this.checkCellBomb(+id - 1) : 0
+    // const $6 = x < this.sizeBoard.maxX - 1 ? this.checkCellBomb(+id + 1) : 0
+    // const $7 = x > 0 ? this.checkCellBomb(+id + this.sizeBoard.maxX - 1) : 0
+    // const $8 =
+    //   y < this.sizeBoard.maxY - 1
+    //     ? this.checkCellBomb(+id + this.sizeBoard.maxX)
+    //     : 0
+    // const $9 =
+    //   x < this.sizeBoard.maxX - 1
+    //     ? this.checkCellBomb(+id + this.sizeBoard.maxX + 1)
+    //     : 0
+    // console.log(
+    //   '$1',
+    //   $1,
+    //   '$2',
+    //   $2,
+    //   '$3',
+    //   $3,
+    //   '$4',
+    //   $4,
+    //   '$6',
+    //   $6,
+    //   '$7',
+    //   $7,
+    //   '$8',
+    //   $8,
+    //   '$9',
+    //   $9
+    // )
 
-  numberCell2(id) {
-    const $el = document.getElementById(id)
-    const x = $el.getAttribute('x')
-    const y = $el.getAttribute('y')
-
-    let counter = 0
-
-    const $1 = x > 0 ? this.checkCellBomb(+id - this.sizeBoard.maxX - 1) : 0
-    const $2 = y > 0 ? this.checkCellBomb(+id - this.sizeBoard.maxX) : 0
-    const $3 =
-      x < this.sizeBoard.maxX - 1
-        ? this.checkCellBomb(+id - this.sizeBoard.maxX + 1)
-        : 0
-    const $4 = x > 0 ? this.checkCellBomb(+id - 1) : 0
-    const $6 = x < this.sizeBoard.maxX - 1 ? this.checkCellBomb(+id + 1) : 0
-    const $7 = x > 0 ? this.checkCellBomb(+id + this.sizeBoard.maxX - 1) : 0
-    const $8 =
-      y < this.sizeBoard.maxY - 1
-        ? this.checkCellBomb(+id + this.sizeBoard.maxX)
-        : 0
-    const $9 =
-      x < this.sizeBoard.maxX - 1
-        ? this.checkCellBomb(+id + this.sizeBoard.maxX + 1)
-        : 0
-    console.log(
-      '$1',
-      $1,
-      '$2',
-      $2,
-      '$3',
-      $3,
-      '$4',
-      $4,
-      '$6',
-      $6,
-      '$7',
-      $7,
-      '$8',
-      $8,
-      '$9',
-      $9
-    )
-
-    counter = $1 + $2 + $3 + $4 + $6 + $7 + $8 + $9
-    if (counter > 0) $el.textContent = counter
+    //counter = $1 + $2 + $3 + $4 + $6 + $7 + $8 + $9
+    //if (counter > 0) $el.textContent = counter
   }
 
   checkCellBomb(id) {
