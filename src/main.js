@@ -27,6 +27,11 @@ class Sapper {
       false
     )
 
+    this.element.addEventListener('contextmenu', (e) => {
+      e.preventDefault()
+      this.checkFlag(e.target)
+    })
+
     this.element.appendChild(this.addCells())
 
     document.body.appendChild(this.element)
@@ -42,20 +47,25 @@ class Sapper {
         el.classList.add('cell')
         el.classList.add('cell-disable')
         el.setAttribute('coord', `${x},${y}`)
-        //el.textContent = `${x},${y}`
-
+        //npm run el.textContent = `${x},${y}`
         this.addBombs(x, y)
         fragment.appendChild(el)
+
+        if (x === this.sizeBoard.maxX - 1) {
+          fragment.appendChild(document.createElement('br'))
+        }
       }
-      //this.board.push(data)
-      //console.log(this.board)
     }
+
     this.numbersHandler()
+    setTimeout(() => {
+      this.board = document.querySelectorAll('.cell')
+    }, 100)
     return fragment
   }
 
   addBombs(x, y) {
-    const bombValue = 0.2
+    const bombValue = 0.05
 
     let rand = Math.random() < bombValue
 
@@ -94,7 +104,6 @@ class Sapper {
   }
 
   clickCell(elem) {
-    console.log(elem)
     if (this.gameOver) return
 
     if (elem.hasAttribute('coord')) {
@@ -111,6 +120,9 @@ class Sapper {
           if (num != null) {
             elem.classList.add('cell-active')
             elem.textContent = num
+            setTimeout(() => {
+              this.endgame()
+            }, 100)
             return
           }
         }
@@ -184,54 +196,42 @@ class Sapper {
         this.clickCell(cellSouthWest, `${x - 1},${y + 1}`)
       }
     }, 10)
-
-    // const $1 = x > 0 ? this.checkCellBomb(+id - this.sizeBoard.maxX - 1) : 0
-    // const $2 = y > 0 ? this.checkCellBomb(+id - this.sizeBoard.maxX) : 0
-    // const $3 =
-    //   x < this.sizeBoard.maxX - 1
-    //     ? this.checkCellBomb(+id - this.sizeBoard.maxX + 1)
-    //     : 0
-    // const $4 = x > 0 ? this.checkCellBomb(+id - 1) : 0
-    // const $6 = x < this.sizeBoard.maxX - 1 ? this.checkCellBomb(+id + 1) : 0
-    // const $7 = x > 0 ? this.checkCellBomb(+id + this.sizeBoard.maxX - 1) : 0
-    // const $8 =
-    //   y < this.sizeBoard.maxY - 1
-    //     ? this.checkCellBomb(+id + this.sizeBoard.maxX)
-    //     : 0
-    // const $9 =
-    //   x < this.sizeBoard.maxX - 1
-    //     ? this.checkCellBomb(+id + this.sizeBoard.maxX + 1)
-    //     : 0
-    // console.log(
-    //   '$1',
-    //   $1,
-    //   '$2',
-    //   $2,
-    //   '$3',
-    //   $3,
-    //   '$4',
-    //   $4,
-    //   '$6',
-    //   $6,
-    //   '$7',
-    //   $7,
-    //   '$8',
-    //   $8,
-    //   '$9',
-    //   $9
-    // )
-
-    //counter = $1 + $2 + $3 + $4 + $6 + $7 + $8 + $9
-    //if (counter > 0) $el.textContent = counter
   }
 
   checkCellBomb(id) {
     return this.cellsBombs.indexOf(id) !== -1 ? 1 : 0
+  }
+
+  checkFlag(elem) {
+    if (elem.classList.contains('cell-flag')) {
+      elem.classList.remove('cell-flag')
+    } else {
+      elem.classList.add('cell-flag')
+    }
+  }
+
+  endgame() {
+    let win = true
+
+    this.board.forEach((cell) => {
+      let coord = cell.getAttribute('coord')
+      if (
+        !cell.classList.contains('cell-active') &&
+        !this.cellsBombs.includes(coord)
+      )
+        win = false
+    })
+    if (win) {
+      this.screen = document.createElement('span')
+      this.screen.classList.add('span-block')
+      this.screen.textContent = 'Победа!'
+      document.getElementById('board').appendChild(this.screen)
+      return
+    }
   }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   const sapper = new Sapper()
   sapper.init()
-  //document.body.addEventListener('contextmenu', (e) => e.preventDefault())
 })
