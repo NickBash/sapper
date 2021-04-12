@@ -2,6 +2,7 @@ import './style.css'
 
 class Sapper {
   constructor() {
+    this.button = null
     this.element = null
     this.board = []
     this.cellsBombs = []
@@ -9,12 +10,26 @@ class Sapper {
     this.screen = null
     this.gameOver = false
     this.sizeBoard = {
-      maxY: 16,
-      maxX: 24,
+      maxY: 8,
+      maxX: 8,
+      complexity: 1,
     }
+    this.colorsNumbers = [
+      'blue',
+      'green',
+      'red',
+      'purple',
+      'maroon',
+      'aqua',
+      'navy',
+      'fuchsia',
+    ]
   }
 
   init() {
+    document.getElementById('btn-start').addEventListener('click', () => {
+      this.startGame()
+    })
     this.element = document.createElement('div')
     this.element.classList.add('board')
     this.element.setAttribute('id', 'board')
@@ -26,28 +41,45 @@ class Sapper {
       },
       false
     )
-
     this.element.addEventListener('contextmenu', (e) => {
       e.preventDefault()
       this.checkFlag(e.target)
     })
-
-    this.element.appendChild(this.addCells())
-
+    this.renderSqures()
     document.body.appendChild(this.element)
+  }
+
+  renderSqures() {
+    this.element.appendChild(this.addCells())
+  }
+
+  startGame() {
+    const size = document.getElementById('size').value
+    this.sizeBoard.maxX = size
+    this.sizeBoard.maxY = size > 8 ? size - 8 : size
+    this.sizeBoard.complexity = document.getElementById('complexity').value
+    this.cleanGame()
+    this.renderSqures()
+  }
+
+  cleanGame() {
+    this.cellsBombs = []
+    this.numbers = []
+    this.screen = null
+    this.gameOver = false
+    document.getElementById('board').innerHTML = ''
   }
 
   addCells() {
     const fragment = document.createDocumentFragment()
 
     for (let y = 0; y < this.sizeBoard.maxY; y++) {
-      //const data = []
       for (let x = 0; x < this.sizeBoard.maxX; x++) {
         const el = document.createElement('div')
         el.classList.add('cell')
         el.classList.add('cell-disable')
         el.setAttribute('coord', `${x},${y}`)
-        //npm run el.textContent = `${x},${y}`
+
         this.addBombs(x, y)
         fragment.appendChild(el)
 
@@ -65,7 +97,7 @@ class Sapper {
   }
 
   addBombs(x, y) {
-    const bombValue = 0.05
+    const bombValue = this.sizeBoard.complexity / 10
 
     let rand = Math.random() < bombValue
 
@@ -89,12 +121,9 @@ class Sapper {
     setTimeout(() => {
       this.numbers.forEach((n) => {
         let coord = n.split(',')
-        //console.log(coord)
         let cell = document.querySelector(
           `div[coord="${+coord[0]},${+coord[1]}"]`
         )
-
-        //console.log(cell)
 
         let num = +cell.getAttribute('num')
         if (!num) num = 0
@@ -120,6 +149,7 @@ class Sapper {
           if (num != null) {
             elem.classList.add('cell-active')
             elem.textContent = num
+            elem.style.color = this.colorsNumbers[+num - 1]
             setTimeout(() => {
               this.endgame()
             }, 100)
@@ -133,26 +163,10 @@ class Sapper {
     }
   }
 
-  activeBombs() {
-    this.cellsBombs.forEach((item) => {
-      document
-        .querySelector(`div[coord="${item}"]`)
-        .classList.remove('cell-disable')
-      document.querySelector(`div[coord="${item}"]`).classList.add('boom')
-    })
-    this.screen = document.createElement('span')
-    this.screen.classList.add('span-block')
-    this.screen.textContent = 'БУМ'
-    document.getElementById('board').appendChild(this.screen)
-    return
-  }
-
   checkCell(elem, coord) {
     let coords = coord.split(',')
     const x = +coords[0]
     const y = +coords[1]
-
-    //console.log(coords)
 
     setTimeout(() => {
       if (x > 0) {
@@ -208,6 +222,20 @@ class Sapper {
     } else {
       elem.classList.add('cell-flag')
     }
+  }
+
+  activeBombs() {
+    this.cellsBombs.forEach((item) => {
+      document
+        .querySelector(`div[coord="${item}"]`)
+        .classList.remove('cell-disable')
+      document.querySelector(`div[coord="${item}"]`).classList.add('boom')
+    })
+    this.screen = document.createElement('span')
+    this.screen.classList.add('span-block')
+    this.screen.textContent = 'БУМ! Поражение!'
+    document.getElementById('board').appendChild(this.screen)
+    return
   }
 
   endgame() {
